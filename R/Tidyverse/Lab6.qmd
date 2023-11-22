@@ -1,0 +1,158 @@
+---
+title: "Lab6 - Filip Pasternak"
+format: 
+  html: 
+    code-fold: true
+    df-print: kable
+    error: false
+    warning: false
+    message: false
+editor: visual
+---
+
+## Wczytywanie bibliotek
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+library(dplyr)
+```
+
+## Zadanie 1
+
+Korzystając z dokumentacji pakietu i podglądając zawartość tabeli opisać co znaczą wszystkie zmienne oraz jakich są typów. Wyjaśnić też co oznaczają poszczególne kody.
+
+year: Rok lotu (typ: integer). month: Miesiąc lotu (typ: integer). day: Dzień miesiąca lotu (typ: integer). dep_time: Czas odlotu (HHMM, lokalny czas) (typ: integer). sched_dep_time: Zaplanowany czas odlotu (HHMM, lokalny czas) (typ: integer). dep_delay: Opóźnienie odlotu w minutach (typ: integer). arr_time: Czas przylotu (HHMM, lokalny czas) (typ: integer). sched_arr_time: Zaplanowany czas przylotu (HHMM, lokalny czas) (typ: integer). arr_delay: Opóźnienie przylotu w minutach (typ: integer). carrier: Kod linii lotniczej (typ: character). flight: Numer lotu (typ: integer). tailnum: Numer ogonu samolotu (typ: character). origin: Kod lotniska początkowego (typ: character). dest: Kod lotniska docelowego (typ: character). air_time: Czas trwania lotu w minutach (typ: integer). distance: Dystans lotu w milach (typ: integer). hour: Godzina odlotu (typ: integer). minute: Minuta odlotu (typ: integer). time_hour: Data i godzina lotu (typ: POSIXct).
+
+## Zadanie 2
+
+Za pomocą pojedynczego pipelina na każdy warunek, znajdź wszystkie loty, które:
+
+Miały opóźnienie o co najmniej 2 godziny:
+
+```{r}
+delayed_flights <- flights %>% 
+  filter(dep_delay >= 200)
+knitr::kable(head(delayed_flights, 10), caption = "Wynik zadania")
+```
+
+Leciały do Huston (IAH lub HOU):
+
+```{r}
+to_IAH_HOU <- flights %>% 
+  filter(dest == "IAH" | dest == "HOU")
+knitr::kable(head(to_IAH_HOU, 10), caption = "Wynik zadania")
+
+```
+
+Były z lini lotniczych United, American, lub Delta:
+
+```{r}
+United_american_delta <- flights %>%
+  filter(carrier == "UA" | carrier == "AA" | carrier == "DL")
+knitr::kable(head(United_american_delta, 10), caption = "Wynik zadania")
+
+```
+
+Wylatywały w lecie (Lipiec, Sierpień, Wrzesień):
+
+```{r}
+summer_flights <- flights %>% 
+  filter(month == 7 | month == 8 | month == 9)
+knitr::kable(head(summer_flights, 10), caption = "Wynik zadania")
+
+```
+
+Miały opóźnienie o co najmniej dwie godziny ale nie miały opóźnienia odlotu:
+
+```{r}
+delayed_flights_2 <- flights %>% 
+  filter(dep_delay <= 0 & arr_delay >= 120)
+knitr::kable(head(delayed_flights_2, 10), caption = "Wynik zadania")
+
+```
+
+Miały co najmniej godzinę opóźnienia ale odrobiły ponad 30 minut w trakcie lotu:
+
+```{r}
+delayed_flights_3 <- flights %>% 
+  filter(dep_delay >= 60 & arr_delay <= (dep_delay - 30))
+knitr::kable(head(delayed_flights_3, 10), caption = "Wynik zadania")
+
+```
+
+Posortuj loty by znaleźć loty z najdłuższym opóźnieniem odlotu:
+
+```{r}
+flights_sorted_by_dep_delay <- flights %>%
+  arrange(desc(dep_delay))
+knitr::kable(head(flights_sorted_by_dep_delay, 10), caption = "Wynik zadania")
+
+```
+
+Znajdź loty, który odlatywały najwcześniej rano:
+
+```{r}
+earliest_morning_flights <- flights %>%
+  filter(hour == 0 | hour == 1) %>%  
+  arrange(hour, minute)
+knitr::kable(earliest_morning_flights, caption = "Wynik zadania")
+
+```
+
+## Zadanie 3
+
+Posortuj loty by znaleźć najszybsze połączenia.
+
+```{r}
+fastest_flights <- flights %>%
+  mutate(speed = distance / air_time) %>%  
+  arrange(desc(speed))
+
+knitr::kable(head(fastest_flights, 10), caption = "Wynik zadania")
+```
+
+## Zadanie 4
+
+Czy każdego dnia 2013 odbył się co najmniej jeden lot?
+
+```{r}
+flights_per_day <- flights %>%
+  group_by(year, month, day, .groups = 'drop') %>%
+  summarise(total_flights = n())
+
+days_with_flights <- flights_per_day %>%
+  filter(total_flights > 0)
+
+if (nrow(days_with_flights) == 365){
+  print("W każdy dzień odbył się przynajmniej jeden lot")
+} else {
+  print("Nie w każdy dzień odbywały się loty")
+}
+```
+
+## Zadanie 5
+
+Które loty pokonały największy dystans a które najkrótszy (top i bottom 10)
+
+```{r}
+top_10_longest_flights <- flights %>%
+  arrange(desc(distance)) %>%
+  head(10)
+
+bottom_10_shortest_flights <- flights %>%
+  arrange(distance) %>%
+  head(10)
+
+knitr::kable(top_10_longest_flights, caption = "Wynik zadania")
+```
+```{r}
+knitr::kable(bottom_10_shortest_flights, caption = "Wynik zadania")
+```
+
+## Zadanie 6
+
+Czy kolejność używania filter() i arrange() ma znaczenie jeśli używasz obydwu? Dlaczego tak/nie? Weź pod uwagę zarówno rezultaty jak też i zużycie zasobów.
+
+Tak różnią się, ponieważ przy dużej ilości danych jeśli najpierw użyjemy arrange to funkcja porządkuje nam zbiór który nie jest ograniczony do interesujących nas przypadków. Wyniki mogą się również różnić ponieważ kolejność użycia tych funkcji wpłynie na to czy filtrujemy już posortowane dane czy nie, co może w pewnych przypadkach prowadzić do różnych wyników.
+
